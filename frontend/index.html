@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIOps Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <h1>🔐 AIOps Portal Login</h1>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label>👤 Username</label>
+                    <input type="text" id="username" placeholder="admin / user" required>
+                </div>
+                <div class="form-group">
+                    <label>🔒 Password</label>
+                    <input type="password" id="password" placeholder="admin123 / user123" required>
+                </div>
+                <button type="submit" class="btn-primary">🚀 Login</button>
+                <div id="loginError" class="error-message"></div>
+            </form>
+            <div class="demo-info">
+                <p><strong>Demo Credentials:</strong></p>
+                <p>👨‍💼 ADMIN → username: <code>admin</code>, password: <code>admin123</code></p>
+                <p>👤 USER → username: <code>user</code>, password: <code>user123</code></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div id="dashboard" class="dashboard hidden">
+        <!-- Header -->
+        <header class="main-header">
+            <div class="header-content">
+                <div>
+                    <h1>🚀 Intelligent Cloud Incident Management Dashboard</h1>
+                    <p>AI-Powered Operations Monitoring • Prediction • Root Cause Analysis</p>
+                </div>
+                <div class="user-info">
+                    <span id="userDisplay"></span>
+                    <button id="logoutBtn" class="btn-secondary">🚪 Logout</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <h3>⚙️ Dashboard Controls</h3>
+            <label class="toggle">
+                <input type="checkbox" id="autoRefresh">
+                <span>🔄 Auto-refresh</span>
+            </label>
+            <div id="refreshInterval" class="hidden">
+                <label>⏱️ Refresh interval (sec)</label>
+                <input type="range" id="refreshSeconds" min="2" max="20" value="6">
+                <span id="refreshValue">6s</span>
+            </div>
+
+            <label class="toggle">
+                <input type="checkbox" id="liveStream">
+                <span>📡 Real-time streaming</span>
+            </label>
+
+            <hr>
+            <h3>🔍 Filters</h3>
+            
+            <label>🚨 Alert Status</label>
+            <select id="alertFilter">
+                <option value="ALL">ALL</option>
+                <option value="OK">OK</option>
+                <option value="ALERT">ALERT</option>
+            </select>
+
+            <label>🔍 Root Cause</label>
+            <select id="rootFilter">
+                <option value="ALL">ALL</option>
+            </select>
+
+            <label>📊 Monitoring Window</label>
+            <input type="range" id="windowSlider" min="50" max="1500" value="250">
+            <span id="windowValue">250 records</span>
+
+            <hr>
+            <h3>📅 Date Range</h3>
+            <label>Start Date</label>
+            <input type="date" id="startDate">
+            <label>End Date</label>
+            <input type="date" id="endDate">
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- KPI Cards -->
+            <section class="kpi-section">
+                <div class="kpi-card">
+                    <div class="kpi-label">CPU Usage</div>
+                    <div class="kpi-value" id="kpiCpu">--</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Memory Usage</div>
+                    <div class="kpi-value" id="kpiMemory">--</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Response Time</div>
+                    <div class="kpi-value" id="kpiResponse">--</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Failure Probability</div>
+                    <div class="kpi-value" id="kpiFailure">--</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Anomaly</div>
+                    <div class="kpi-value" id="kpiAnomaly">--</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Alert Status</div>
+                    <div class="kpi-value" id="kpiAlert">--</div>
+                </div>
+            </section>
+
+            <!-- Summary Cards -->
+            <section class="summary-section">
+                <div class="summary-card">
+                    <div class="summary-label">Alerts in Window</div>
+                    <div class="summary-value" id="summaryAlerts">0</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">OK Status</div>
+                    <div class="summary-value" id="summaryOK">0</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">Anomalies</div>
+                    <div class="summary-value" id="summaryAnomalies">0</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">Top Root Cause</div>
+                    <div class="summary-value-small" id="summaryRootCause">--</div>
+                </div>
+            </section>
+
+            <!-- Incident Status -->
+            <section class="incident-section">
+                <div class="incident-card" id="incidentCard">
+                    <h3>🚨 Incident Status</h3>
+                    <div id="incidentContent">Loading...</div>
+                </div>
+                <div class="details-card">
+                    <h3>🧠 Latest Incident Details</h3>
+                    <div id="detailsContent">Loading...</div>
+                </div>
+            </section>
+
+            <!-- Tabs -->
+            <section class="tabs-section">
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="monitoring">📈 Monitoring</button>
+                    <button class="tab-btn" data-tab="analytics">📊 Analytics</button>
+                    <button class="tab-btn" data-tab="insights">🔍 Insights</button>
+                    <button class="tab-btn" id="loginHistoryTab" data-tab="login-history" style="display: none;">🔐 Login History</button>
+                </div>
+
+                <!-- Monitoring Tab -->
+                <div id="monitoringTab" class="tab-content active">
+                    <div class="chart-container">
+                        <div id="multiMetricChart"></div>
+                    </div>
+                    <div class="chart-grid">
+                        <div class="chart-item">
+                            <div id="cpuChart"></div>
+                        </div>
+                        <div class="chart-item">
+                            <div id="memoryChart"></div>
+                        </div>
+                        <div class="chart-item">
+                            <div id="responseChart"></div>
+                        </div>
+                        <div class="chart-item">
+                            <div id="failureChart"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analytics Tab -->
+                <div id="analyticsTab" class="tab-content">
+                    <div class="chart-grid">
+                        <div class="chart-item">
+                            <div id="rootCauseChart"></div>
+                        </div>
+                        <div class="chart-item">
+                            <div id="rootCausePieChart"></div>
+                        </div>
+                        <div class="chart-item">
+                            <div id="alertStatusChart"></div>
+                        </div>
+                        <div class="chart-item">
+                            <div id="correlationChart"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Insights Tab -->
+                <div id="insightsTab" class="tab-content">
+                    <div class="insights-grid">
+                        <div class="insights-card">
+                            <h3>💡 Key Insights</h3>
+                            <div id="keyInsights"></div>
+                        </div>
+                        <div class="insights-card">
+                            <h3>📈 Performance Metrics</h3>
+                            <div id="performanceMetrics"></div>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <div id="hourlyTrendChart"></div>
+                    </div>
+                </div>
+
+                <!-- Login History Tab (Admin Only) -->
+                <div id="login-historyTab" class="tab-content">
+                    <div class="insights-card">
+                        <h3>🔐 Login History (MongoDB Tracking)</h3>
+                        <p style="color: #b0b0b0; margin-bottom: 1rem;">Recent user logins tracked in MongoDB</p>
+                        <button id="refreshLogins" class="btn-primary" style="margin-bottom: 1rem;">🔄 Refresh</button>
+                        <div id="loginHistoryContent">
+                            <p>Loading login history...</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
