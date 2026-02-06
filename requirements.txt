@@ -1,0 +1,13 @@
+numpy
+pandas
+matplotlib
+scikit-learn
+streamlit
+joblib
+plotly
+reportlab
+streamlit-option-menu
+flask
+flask-cors
+pymongo
+google-generativeai

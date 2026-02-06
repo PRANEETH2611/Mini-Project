@@ -1,0 +1,5 @@
+{
+    "cpu_threshold": 73,
+    "memory_threshold": 8,
+    "latency_threshold": 1100
+}
