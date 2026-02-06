@@ -1,5 +1,28 @@
+# OS files
+.DS_Store
+Thumbs.db
 
-# text
+# Python
+__pycache__/
+*.pyc
+.venv/
+env/
 
-*.ppt
-*.pptx
+# Node
+node_modules/
+npm-debug.log*
+
+# Java
+*.class
+target/
+
+# IDEs
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+#text
+.ppt
+.pptx
