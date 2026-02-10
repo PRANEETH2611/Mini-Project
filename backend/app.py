@@ -167,16 +167,6 @@ def ingest_data():
             anomaly_label=data['anomaly_label'],
         )
         data.update(resolution)
-
-        # Apply remedy status for dashboard visibility
-        if data.get('resolution_status') == 'AUTO_REMEDIATION_EXECUTED':
-            data['incident_state'] = 'RESOLVED_BY_AI'
-            data['recommended_action'] = data.get('auto_resolution', data['recommended_action'])
-        elif data.get('resolution_status') == 'MANUAL_INTERVENTION_REQUIRED':
-            data['incident_state'] = 'ESCALATED_TO_SRE'
-            data['alert_status'] = 'ALERT'
-        else:
-            data['incident_state'] = 'MONITORING'
         
         # Append to DataFrame
         new_row = pd.DataFrame([data])
@@ -545,15 +535,8 @@ if __name__ == '__main__':
     print(f"📊 Data file: {DATA_FILE}")
     print(f"📈 Records loaded: {len(df)}")
     print(f"🔐 MongoDB login tracking: "f"{'Enabled' if login_tracker.db is not None else 'Disabled'}")
-
-    launched_by_runner = os.environ.get('AIOPS_DISABLE_RELOADER', '0') == '1'
     app.run(
-        
         debug=True,
-       
         host='0.0.0.0',
-       
         use_reloader=False,
-        port=5000,
-        use_reloader=not launched_by_runner,
-    )
+        port=5000)

@@ -123,17 +123,6 @@ resolution_output = df.apply(
 
 df = pd.concat([df, resolution_output], axis=1)
 
-def derive_incident_state(row):
-    status = str(row.get("resolution_status", "MONITORING"))
-    if status == "AUTO_REMEDIATION_EXECUTED":
-        return "RESOLVED_BY_AI"
-    if status == "MANUAL_INTERVENTION_REQUIRED":
-        return "ESCALATED_TO_SRE"
-    return "MONITORING"
-
-# Set explicit incident state for dashboard alerts
-df["incident_state"] = df.apply(derive_incident_state, axis=1)
-
 # -------------------------------
 # SAVE FINAL OUTPUT
 # -------------------------------
