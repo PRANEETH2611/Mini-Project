@@ -53,7 +53,7 @@ class LoginTracker:
     
     def log_login(self, username, role, ip_address=None, user_agent=None):
         """Log a user login"""
-        if not self.db:
+        if self.db is None :
             return False
         
         try:
