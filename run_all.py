@@ -14,22 +14,28 @@ import time
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-def _spawn(cmd: list[str], name: str) -> subprocess.Popen:
+def _spawn(cmd: list[str], name: str, extra_env: dict[str, str] | None = None) -> subprocess.Popen:
     print(f"[start] {name}: {' '.join(cmd)}")
-    return subprocess.Popen(cmd, cwd=BASE_DIR)
+    env = os.environ.copy()
+    if extra_env:
+        env.update(extra_env)
+    return subprocess.Popen(cmd, cwd=BASE_DIR, env=env)
 
 
 def main() -> int:
     backend_cmd = [sys.executable, "backend/app.py"]
     streamlit_cmd = [sys.executable, "-m", "streamlit", "run", "dashboard/app.py"]
 
-    backend = _spawn(backend_cmd, "backend")
+    backend = _spawn(backend_cmd, "backend", {"AIOPS_DISABLE_RELOADER": "1"})
     time.sleep(1.5)
     dashboard = _spawn(streamlit_cmd, "streamlit")
 
     processes = [backend, dashboard]
+    stopping = False
 
     def _shutdown(*_: object) -> None:
+        nonlocal stopping
+        stopping = True
         print("\n[stop] Shutting down services...")
         for p in processes:
             if p.poll() is None:
@@ -46,13 +52,15 @@ def main() -> int:
     try:
         while True:
             if backend.poll() is not None:
-                print("[error] backend exited; stopping launcher")
+                if not stopping:
+                    print("[error] backend exited; stopping launcher")
                 _shutdown()
-                return 1
+                return 1 if not stopping else 0
             if dashboard.poll() is not None:
-                print("[error] streamlit exited; stopping launcher")
+                if not stopping:
+                    print("[error] streamlit exited; stopping launcher")
                 _shutdown()
-                return 1
+                return 1 if not stopping else 0
             time.sleep(1)
     except KeyboardInterrupt:
         _shutdown()
