@@ -293,6 +293,16 @@ def main():
             val = "DETECTED" if anom == 1 else "NONE"
             st.markdown(kpi_card("Anomaly", val, "", state, "🛡️"), unsafe_allow_html=True)
 
+        # Resolution status banner
+        resolution_status = str(latest.get('resolution_status', 'MONITORING'))
+        resolution_alert = str(latest.get('resolution_alert', '') or '').strip()
+        if resolution_status == 'AUTO_REMEDIATION_EXECUTED':
+            st.success(f"✅ Auto-remediation executed: {latest.get('auto_resolution', 'Action applied')}")
+        elif resolution_alert:
+            st.error(resolution_alert)
+        elif resolution_status == 'MANUAL_INTERVENTION_REQUIRED':
+            st.warning("⚠️ Manual intervention required. Please review remediation playbook.")
+
         # ANALYSIS TABS
         st.markdown("### 📈 Deep Dive & Graphs")
         tab1, tab2, tab3 = st.tabs(["💻 CPU Incidents", "🧠 Memory Incidents", "⚡ Latency Incidents"])
@@ -472,6 +482,14 @@ def main():
                     
                 if st.button("📢 Page SRE Team", use_container_width=True):
                     st.toast("Alert sent to #ops-critical slack channel.", icon="🔔")
+
+            st.markdown("---")
+            st.markdown("**🤖 Latest Auto-Resolution Decision**")
+            st.write(f"**Status:** {latest.get('resolution_status', 'MONITORING')}")
+            st.write(f"**Action Plan:** {latest.get('auto_resolution', latest.get('recommended_action', 'No action needed'))}")
+            st.caption(str(latest.get('resolution_playbook', 'Observe and continue monitoring.')))
+            if str(latest.get('resolution_alert', '') or '').strip():
+                st.error(str(latest.get('resolution_alert')))
 
             # Feedback Loop (Only visible if something is wrong)
             if latest.get('anomaly_label', 0) == 1 or latest['cpu_usage'] > CPU_THRESH:
