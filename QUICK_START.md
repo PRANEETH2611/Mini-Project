@@ -35,11 +35,15 @@ python test_mongodb.py
 
 You should see: ✅ All tests passed!
 
-### Step 4: Run Dashboard
+### Step 4: Run Backend + Streamlit Dashboard (single command)
 
 ```bash
 streamlit run dashboard/app.py
 ```
+
+This starts:
+- Flask backend API at `http://localhost:5000`
+- Streamlit frontend at `http://localhost:8501`
 
 ### Step 5: Login
 
@@ -79,6 +83,7 @@ AIOPS project/
 - ✅ Incident Tracking
 - ✅ Charts & Analytics
 - ✅ Filtering Options
+- ✅ AI-based automatic resolution suggestions for anomalies
 
 ---
 
