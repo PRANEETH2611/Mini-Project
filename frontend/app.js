@@ -199,24 +199,13 @@ function updateSummary(stats) {
 function updateIncidentStatus(latest) {
     const incidentCard = document.getElementById('incidentCard');
     const incidentContent = document.getElementById('incidentContent');
-    const resolutionStatus = latest.resolution_status || 'MONITORING';
-    const resolutionAlert = (latest.resolution_alert || '').trim();
-
-    if (resolutionStatus === 'MANUAL_INTERVENTION_REQUIRED') {
-        incidentCard.style.background = 'linear-gradient(135deg, #b91c1c 0%, #ef4444 100%)';
-        incidentContent.innerHTML = `
-            <h3>🚨 ESCALATION REQUIRED</h3>
-            <p><b>Root Cause:</b> ${latest.predicted_root_cause}</p>
-            <p><b>Resolution Alert:</b> ${resolutionAlert || 'Auto-remediation unavailable'}</p>
-            <p><b>Timestamp:</b> ${new Date(latest.timestamp).toLocaleString()}</p>
-        `;
-    } else if (latest.alert_status === 'ALERT') {
+    
+    if (latest.alert_status === 'ALERT') {
         incidentCard.style.background = 'linear-gradient(135deg, #d62728 0%, #ff6b6b 100%)';
         incidentContent.innerHTML = `
             <h3>⚠️ ALERT: High Incident Risk</h3>
             <p><b>Root Cause:</b> ${latest.predicted_root_cause}</p>
-            <p><b>Auto Resolution:</b> ${latest.auto_resolution || latest.recommended_action}</p>
-            <p><b>Status:</b> ${resolutionStatus}</p>
+            <p><b>Recommended Action:</b> ${latest.recommended_action}</p>
             <p><b>Timestamp:</b> ${new Date(latest.timestamp).toLocaleString()}</p>
         `;
     } else {
@@ -227,7 +216,7 @@ function updateIncidentStatus(latest) {
             <p><b>Timestamp:</b> ${new Date(latest.timestamp).toLocaleString()}</p>
         `;
     }
-
+    
     document.getElementById('detailsContent').innerHTML = `
         <p><b>Timestamp:</b> ${new Date(latest.timestamp).toLocaleString()}</p>
         <p><b>Anomaly:</b> ${latest.anomaly_label === 1 ? 'YES' : 'NO'}</p>
@@ -236,9 +225,6 @@ function updateIncidentStatus(latest) {
         <p><b>Failure Probability:</b> ${(latest.failure_probability * 100).toFixed(2)}%</p>
         <p><b>Root Cause:</b> ${latest.predicted_root_cause}</p>
         <p><b>Action:</b> ${latest.recommended_action}</p>
-        <p><b>Auto Resolution:</b> ${latest.auto_resolution || 'N/A'}</p>
-        <p><b>Resolution Status:</b> ${resolutionStatus}</p>
-        ${resolutionAlert ? `<p style="color:#ef4444;"><b>Resolution Alert:</b> ${resolutionAlert}</p>` : ''}
     `;
 }
 

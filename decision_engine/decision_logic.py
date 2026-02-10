@@ -1,12 +1,6 @@
 import os
 import pandas as pd
 import joblib
-import sys
-
-# Make package imports work when run as a script
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from decision_engine.resolution_model import recommend_resolution
 
 # -------------------------------
 # PATH SETUP
@@ -105,34 +99,6 @@ def recommend_action(root):
     return "No action needed"
 
 df["recommended_action"] = df["predicted_root_cause"].apply(recommend_action)
-
-# Automatic resolution model output
-resolution_output = df.apply(
-    lambda row: recommend_resolution(
-        root_cause=row.get("predicted_root_cause", "NORMAL"),
-        cpu_usage=float(row.get("cpu_usage", 0)),
-        memory_usage=float(row.get("memory_usage", 0)),
-        response_time=float(row.get("response_time", 0)),
-        anomaly_score=float(row.get("anomaly_score", 0)),
-        failure_probability=float(row.get("failure_probability", 0)),
-        anomaly_label=int(row.get("anomaly_label", 0)),
-    ),
-    axis=1,
-    result_type="expand",
-)
-
-df = pd.concat([df, resolution_output], axis=1)
-
-def derive_incident_state(row):
-    status = str(row.get("resolution_status", "MONITORING"))
-    if status == "AUTO_REMEDIATION_EXECUTED":
-        return "RESOLVED_BY_AI"
-    if status == "MANUAL_INTERVENTION_REQUIRED":
-        return "ESCALATED_TO_SRE"
-    return "MONITORING"
-
-# Set explicit incident state for dashboard alerts
-df["incident_state"] = df.apply(derive_incident_state, axis=1)
 
 # -------------------------------
 # SAVE FINAL OUTPUT

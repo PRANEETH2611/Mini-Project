@@ -55,12 +55,16 @@
     Clone the repository
 
     Install dependencies
+<<<<<<< HEAD
 
     Run backend + dashboard together with one command: `python run_all.py`
 
-    View results on the dashboard
+=======
     
-    Review AI-driven automatic resolution suggestions for anomalies
+    Run monitoring and prediction modules
+    
+>>>>>>> parent of d1d9604 (Add escalation alerts when auto-remedy is unavailable)
+    View results on the dashboard
 
 ## 📜 Note
 
