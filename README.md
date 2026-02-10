@@ -50,9 +50,11 @@
     
     Install dependencies
     
-    Run monitoring and prediction modules
+    Run backend + dashboard together with one command: `python run_all.py`
     
     View results on the dashboard
+    
+    Review AI-driven automatic resolution suggestions for anomalies
 
 ## 📜 Note
 ### 📜 License
