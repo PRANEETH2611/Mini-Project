@@ -46,9 +46,9 @@ ibmcloud ce application create --name aiops-dashboard `
     --cpu 1 `
     --memory 2G `
     --port 8501 `
-    --env GOOGLE_API_KEY=AIzaSyC6MI7Z9rG_8kTMgk12-1_FH6TlOLrqp6s
+    --env GOOGLE_API_KEY=$env:GOOGLE_API_KEY
 ```
-*(Note: We pass your API key as an environment variable so it works instantly)*
+*(Note: set `$env:GOOGLE_API_KEY` in your shell first, then pass it as an environment variable.)*
 
 ## 3. Access Your App
 Once the deployment finishes (takes ~2-3 minutes), it will give you a public URL (e.g., `https://aiops-dashboard.xxxx.codeengine.appdomain.cloud`).

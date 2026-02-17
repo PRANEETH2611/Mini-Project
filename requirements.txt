@@ -11,3 +11,4 @@ flask
 flask-cors
 pymongo
 google-generativeai
+python-dotenv

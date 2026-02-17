@@ -6,6 +6,7 @@ import sys
 import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
+from dotenv import load_dotenv
 try:
     import google.generativeai as genai
     HAS_GENAI = True
@@ -16,6 +17,7 @@ from datetime import datetime
 
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+load_dotenv()
 
 # Lazy imports - only import when needed to speed up initial load
 # from backend.report_generator import generate_pdf_report
@@ -208,7 +210,11 @@ def main():
         st.markdown("---")
         if HAS_GENAI:
             st.markdown("### 🔑 AI Configuration")
-            api_key_input = st.text_input("Gemini API Key", value="AIzaSyC6MI7Z9rG_8kTMgk12-1_FH6TlOLrqp6s", type="password")
+            api_key_input = st.text_input(
+                "Gemini API Key",
+                value=os.getenv("GOOGLE_API_KEY", ""),
+                type="password"
+            )
         else:
             st.error("⚠️ Gemini Library Missing. Run: `pip install google-generativeai`")
         
