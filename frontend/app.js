@@ -235,6 +235,7 @@ function updateIncidentStatus(latest) {
         <p><b>Predicted Failure:</b> ${latest.predicted_failure === 1 ? 'YES' : 'NO'}</p>
         <p><b>Failure Probability:</b> ${(latest.failure_probability * 100).toFixed(2)}%</p>
         <p><b>Root Cause:</b> ${latest.predicted_root_cause}</p>
+        <p><b>Root Cause Confidence:</b> ${((latest.root_cause_confidence || 0) * 100).toFixed(1)}%</p>
         <p><b>Action:</b> ${latest.recommended_action}</p>
         <p><b>Auto Resolution:</b> ${latest.auto_resolution || 'N/A'}</p>
         <p><b>Resolution Status:</b> ${resolutionStatus}</p>

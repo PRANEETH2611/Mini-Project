@@ -54,12 +54,17 @@ def load_data(path: str) -> pd.DataFrame:
 
 
 # Load data once at startup
-try:
-    df = load_data(DATA_FILE)
-    print(f"[OK] Loaded {len(df)} records from CSV")
-except Exception as e:
-    print(f"[ERROR] Failed to load data: {e}")
+start_empty = os.environ.get("AIOPS_START_EMPTY", "0") == "1"
+if start_empty:
+    print("[INFO] Starting with empty in-memory dataset for live streaming mode")
     df = pd.DataFrame()
+else:
+    try:
+        df = load_data(DATA_FILE)
+        print(f"[OK] Loaded {len(df)} records from CSV")
+    except Exception as e:
+        print(f"[ERROR] Failed to load data: {e}")
+        df = pd.DataFrame()
 
 # -----------------------------
 # API ROUTES

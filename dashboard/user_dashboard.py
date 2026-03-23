@@ -30,6 +30,15 @@ else:
 
 from backend.groq_service import GroqService
 
+HAS_GENAI = importlib.util.find_spec("google.generativeai") is not None
+HAS_GROQ = importlib.util.find_spec("groq") is not None
+if HAS_GENAI:
+    genai = importlib.import_module("google.generativeai")
+else:
+    genai = None
+
+from backend.groq_service import GroqService
+
 # Lazy imports - only import when needed to speed up initial load
 # from backend.report_generator import generate_pdf_report
 # from dashboard.utils.config_manager import load_config
@@ -219,6 +228,12 @@ def main():
                 )
         
         st.markdown("---")
+        st.markdown("### 🔑 AI Configuration")
+        ai_provider = st.selectbox("AI Provider", ["Groq", "Gemini"] if HAS_GROQ else ["Gemini", "Groq"])
+        if ai_provider == "Groq":
+            api_key_input = st.text_input("Groq API Key", value="", type="password", help="Starts with gsk_")
+            if not HAS_GROQ:
+                st.error("⚠️ Groq Library Missing. Run: `pip install groq`")
         if HAS_GENAI:
             st.markdown("### 🔑 AI Configuration")
             api_key_input = st.text_input(
