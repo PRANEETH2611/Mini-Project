@@ -14,6 +14,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from database.login_tracker import get_login_tracker
+from decision_engine.resolution_model import recommend_resolution
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend
@@ -144,6 +145,28 @@ def ingest_data():
         data['anomaly_score'] = abs(data['cpu_usage'] - 50) / 100.0  # Simple anomaly score
         data['error_count'] = data.get('error_count', 0)
         data['predicted_failure'] = 1 if data['failure_probability'] > 0.5 else 0
+
+        # Automatic AI resolution recommendation
+        resolution = recommend_resolution(
+            root_cause=data['predicted_root_cause'],
+            cpu_usage=data['cpu_usage'],
+            memory_usage=data['memory_usage'],
+            response_time=data['response_time'],
+            anomaly_score=data['anomaly_score'],
+            failure_probability=data['failure_probability'],
+            anomaly_label=data['anomaly_label'],
+        )
+        data.update(resolution)
+
+        # Apply remedy status for dashboard visibility
+        if data.get('resolution_status') == 'AUTO_REMEDIATION_EXECUTED':
+            data['incident_state'] = 'RESOLVED_BY_AI'
+            data['recommended_action'] = data.get('auto_resolution', data['recommended_action'])
+        elif data.get('resolution_status') == 'MANUAL_INTERVENTION_REQUIRED':
+            data['incident_state'] = 'ESCALATED_TO_SRE'
+            data['alert_status'] = 'ALERT'
+        else:
+            data['incident_state'] = 'MONITORING'
         
         # Append to DataFrame
         new_row = pd.DataFrame([data])
@@ -489,4 +512,11 @@ if __name__ == '__main__':
     print(f"📊 Data file: {DATA_FILE}")
     print(f"📈 Records loaded: {len(df)}")
     print(f"🔐 MongoDB login tracking: {'Enabled' if login_tracker.db else 'Disabled'}")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+
+    launched_by_runner = os.environ.get('AIOPS_DISABLE_RELOADER', '0') == '1'
+    app.run(
+        debug=True,
+        host='0.0.0.0',
+        port=5000,
+        use_reloader=not launched_by_runner,
+    )
