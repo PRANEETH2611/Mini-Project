@@ -14,6 +14,8 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from database.login_tracker import get_login_tracker
+from decision_engine.resolution_model import recommend_resolution
+from backend.live_model_inference import infer_incident
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend
@@ -47,12 +49,17 @@ def load_data(path: str) -> pd.DataFrame:
     return df
 
 # Load data once at startup
-try:
-    df = load_data(DATA_FILE)
-    print(f"[OK] Loaded {len(df)} records from CSV")
-except Exception as e:
-    print(f"[ERROR] Failed to load data: {e}")
+start_empty = os.environ.get("AIOPS_START_EMPTY", "0") == "1"
+if start_empty:
+    print("[INFO] Starting with empty in-memory dataset for live streaming mode")
     df = pd.DataFrame()
+else:
+    try:
+        df = load_data(DATA_FILE)
+        print(f"[OK] Loaded {len(df)} records from CSV")
+    except Exception as e:
+        print(f"[ERROR] Failed to load data: {e}")
+        df = pd.DataFrame()
 
 # -----------------------------
 # API ROUTES
@@ -135,15 +142,39 @@ def ingest_data():
         if 'timestamp' not in data:
             data['timestamp'] = datetime.now()
         
-        # Determine Status (Simple Rule for Demo)
-        data['alert_status'] = "ALERT" if data['cpu_usage'] > 80 or data['response_time'] > 1000 else "OK"
-        data['predicted_root_cause'] = "CPU_OVERLOAD" if data['cpu_usage'] > 80 else "LATENCY_SPIKE" if data['response_time'] > 1000 else "NORMAL"
-        data['recommended_action'] = "Check Logs" if data['alert_status'] == "ALERT" else "No action needed"
-        data['failure_probability'] = 0.8 if data['alert_status'] == "ALERT" else 0.1
-        data['anomaly_label'] = 1 if data['alert_status'] == "ALERT" else 0
-        data['anomaly_score'] = abs(data['cpu_usage'] - 50) / 100.0  # Simple anomaly score
-        data['error_count'] = data.get('error_count', 0)
-        data['predicted_failure'] = 1 if data['failure_probability'] > 0.5 else 0
+        data['error_count'] = int(data.get('error_count', 0))
+
+        # Live ML inference based on trained anomaly / incident / root-cause models
+        inference_result = infer_incident(df, data)
+        data.update(inference_result)
+
+        # Automatic AI resolution recommendation
+        resolution = recommend_resolution(
+            root_cause=data['predicted_root_cause'],
+            cpu_usage=data['cpu_usage'],
+            memory_usage=data['memory_usage'],
+            response_time=data['response_time'],
+            anomaly_score=data['anomaly_score'],
+            failure_probability=data['failure_probability'],
+            anomaly_label=data['anomaly_label'],
+            root_cause_confidence=data.get('root_cause_confidence', 1.0),
+        )
+        data.update(resolution)
+
+        if data.get('predicted_root_cause') == 'UNKNOWN_ANOMALY':
+            data['resolution_status'] = 'MANUAL_INTERVENTION_REQUIRED'
+            data['resolution_alert'] = '⚠️ New or unknown error pattern detected. Immediate user/SRE review required.'
+            data['recommended_action'] = 'Escalate to SRE team for new error investigation'
+
+        # Apply remedy status for dashboard visibility
+        if data.get('resolution_status') == 'AUTO_REMEDIATION_EXECUTED':
+            data['incident_state'] = 'RESOLVED_BY_AI'
+            data['recommended_action'] = data.get('auto_resolution', data['recommended_action'])
+        elif data.get('resolution_status') == 'MANUAL_INTERVENTION_REQUIRED':
+            data['incident_state'] = 'ESCALATED_TO_SRE'
+            data['alert_status'] = 'ALERT'
+        else:
+            data['incident_state'] = 'MONITORING'
         
         # Append to DataFrame
         new_row = pd.DataFrame([data])
@@ -489,4 +520,11 @@ if __name__ == '__main__':
     print(f"📊 Data file: {DATA_FILE}")
     print(f"📈 Records loaded: {len(df)}")
     print(f"🔐 MongoDB login tracking: {'Enabled' if login_tracker.db else 'Disabled'}")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+
+    launched_by_runner = os.environ.get('AIOPS_DISABLE_RELOADER', '0') == '1'
+    app.run(
+        debug=True,
+        host='0.0.0.0',
+        port=5000,
+        use_reloader=not launched_by_runner,
+    )

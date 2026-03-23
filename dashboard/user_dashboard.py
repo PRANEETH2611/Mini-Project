@@ -6,16 +6,22 @@ import sys
 import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
-try:
-    import google.generativeai as genai
-    HAS_GENAI = True
-except ImportError:
-    HAS_GENAI = False
 import time
 from datetime import datetime
+import importlib
+import importlib.util
 
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+HAS_GENAI = importlib.util.find_spec("google.generativeai") is not None
+HAS_GROQ = importlib.util.find_spec("groq") is not None
+if HAS_GENAI:
+    genai = importlib.import_module("google.generativeai")
+else:
+    genai = None
+
+from backend.groq_service import GroqService
 
 # Lazy imports - only import when needed to speed up initial load
 # from backend.report_generator import generate_pdf_report
@@ -206,11 +212,16 @@ def main():
                 )
         
         st.markdown("---")
-        if HAS_GENAI:
-            st.markdown("### 🔑 AI Configuration")
-            api_key_input = st.text_input("Gemini API Key", value="AIzaSyC6MI7Z9rG_8kTMgk12-1_FH6TlOLrqp6s", type="password")
+        st.markdown("### 🔑 AI Configuration")
+        ai_provider = st.selectbox("AI Provider", ["Groq", "Gemini"] if HAS_GROQ else ["Gemini", "Groq"])
+        if ai_provider == "Groq":
+            api_key_input = st.text_input("Groq API Key", value="", type="password", help="Starts with gsk_")
+            if not HAS_GROQ:
+                st.error("⚠️ Groq Library Missing. Run: `pip install groq`")
         else:
-            st.error("⚠️ Gemini Library Missing. Run: `pip install google-generativeai`")
+            api_key_input = st.text_input("Gemini API Key", value="", type="password")
+            if not HAS_GENAI:
+                st.error("⚠️ Gemini Library Missing. Run: `pip install google-generativeai`")
         
         st.markdown("---")
         window = st.slider("Time Window", 50, 1500, 250)
@@ -292,6 +303,16 @@ def main():
             state = "critical" if anom == 1 else "normal"
             val = "DETECTED" if anom == 1 else "NONE"
             st.markdown(kpi_card("Anomaly", val, "", state, "🛡️"), unsafe_allow_html=True)
+
+        # Resolution status banner
+        resolution_status = str(latest.get('resolution_status', 'MONITORING'))
+        resolution_alert = str(latest.get('resolution_alert', '') or '').strip()
+        if resolution_status == 'AUTO_REMEDIATION_EXECUTED':
+            st.success(f"✅ Auto-remediation executed: {latest.get('auto_resolution', 'Action applied')}")
+        elif resolution_alert:
+            st.error(resolution_alert)
+        elif resolution_status == 'MANUAL_INTERVENTION_REQUIRED':
+            st.warning("⚠️ Manual intervention required. Please review remediation playbook.")
 
         # ANALYSIS TABS
         st.markdown("### 📈 Deep Dive & Graphs")
@@ -384,12 +405,12 @@ def main():
 
         with cc1:
             # Chat Interface
-            st.markdown("##### 💬 AIOps Assistant (Gemini Pro)")
+            st.markdown("##### 💬 AIOps Assistant")
             
             # Initialize Chat History
             if "messages" not in st.session_state:
                 st.session_state.messages = [
-                    {"role": "assistant", "content": "Hello! I am connected to **Google Gemini Pro**. Click '✨ Analyze System' for a deep dive, or ask me anything about the system status!"}
+                    {"role": "assistant", "content": "Hello! I can work with **Groq** or **Gemini**. Choose a provider in the sidebar, then click **✨ Analyze System** or ask me about system health!"}
                 ]
 
             # Display Chat History
@@ -398,10 +419,10 @@ def main():
                     st.markdown(message["content"])
 
             # Chat Logic
-            prompt = st.chat_input("Ask Gemini about system health...")
+            prompt = st.chat_input("Ask the AI assistant about system health...")
             
             # Button for Auto-Analysis
-            if st.button("✨ Analyze System with Gemini Pro", use_container_width=True):
+            if st.button("✨ Analyze System with AI", use_container_width=True):
                 prompt = f"""
                 You are a Senior Site Reliability Engineer (SRE). Analyze the following system metrics:
                 - CPU Usage: {latest['cpu_usage']:.1f}%
@@ -428,30 +449,46 @@ def main():
                         st.markdown("**Requesting System Analysis...**")
                     st.session_state.messages.append({"role": "user", "content": "**System Analysis Request**"})
 
-                # Gemini Response Logic
-                if HAS_GENAI:
-                    try:
-                        genai.configure(api_key=api_key_input)
-                        # Using gemini-2.0-flash as confirmed by user's available model list
-                        model = genai.GenerativeModel('gemini-2.0-flash')
-                        
-                        with st.spinner("Gemini (2.0 Flash) is analyzing system metrics..."):
-                            response = model.generate_content(prompt)
-                            bot_reply = response.text
-                        
-                        # Assistant Message
-                        with st.chat_message("assistant"):
-                            st.markdown(bot_reply)
-                        st.session_state.messages.append({"role": "assistant", "content": bot_reply})
-                        
-                    except Exception as e:
-                        error_msg = f"❌ **API Error**: {str(e)}. Please check your API Key."
+                # AI Provider Logic
+                if ai_provider == "Groq":
+                    if HAS_GROQ:
+                        try:
+                            groq_service = GroqService(api_key=api_key_input)
+                            with st.spinner("Groq is analyzing system metrics..."):
+                                bot_reply = groq_service.chat(
+                                    prompt,
+                                    system_prompt="You are a senior SRE assistant. Be concise, practical, and prioritize actionable remediation.",
+                                )
+                            with st.chat_message("assistant"):
+                                st.markdown(bot_reply)
+                            st.session_state.messages.append({"role": "assistant", "content": bot_reply})
+                        except Exception as e:
+                            error_msg = f"❌ **Groq Error**: {str(e)}. Please check your Groq API Key."
+                            st.error(error_msg)
+                            st.session_state.messages.append({"role": "assistant", "content": error_msg})
+                    else:
+                        error_msg = "❌ **Dependency Error**: `groq` not installed. Please try: `pip install groq`"
                         st.error(error_msg)
                         st.session_state.messages.append({"role": "assistant", "content": error_msg})
                 else:
-                    error_msg = "❌ **Dependency Error**: `google-generativeai` not installed. Please try: `pip install google-generativeai`"
-                    st.error(error_msg)
-                    st.session_state.messages.append({"role": "assistant", "content": error_msg})
+                    if HAS_GENAI:
+                        try:
+                            genai.configure(api_key=api_key_input)
+                            model = genai.GenerativeModel('gemini-2.0-flash')
+                            with st.spinner("Gemini is analyzing system metrics..."):
+                                response = model.generate_content(prompt)
+                                bot_reply = response.text
+                            with st.chat_message("assistant"):
+                                st.markdown(bot_reply)
+                            st.session_state.messages.append({"role": "assistant", "content": bot_reply})
+                        except Exception as e:
+                            error_msg = f"❌ **Gemini Error**: {str(e)}. Please check your Gemini API Key."
+                            st.error(error_msg)
+                            st.session_state.messages.append({"role": "assistant", "content": error_msg})
+                    else:
+                        error_msg = "❌ **Dependency Error**: `google-generativeai` not installed. Please try: `pip install google-generativeai`"
+                        st.error(error_msg)
+                        st.session_state.messages.append({"role": "assistant", "content": error_msg})
             
         with cc2:
             st.markdown("#### 🛠️ Remediation Actions")
@@ -472,6 +509,23 @@ def main():
                     
                 if st.button("📢 Page SRE Team", use_container_width=True):
                     st.toast("Alert sent to #ops-critical slack channel.", icon="🔔")
+
+            st.markdown("---")
+            st.markdown("**🤖 Latest Auto-Resolution Decision**")
+            st.write(f"**Status:** {latest.get('resolution_status', 'MONITORING')}")
+            st.write(f"**Detected Error Type:** {latest.get('predicted_root_cause', 'NORMAL')}")
+            st.write(f"**Error Confidence:** {float(latest.get('root_cause_confidence', 0)):.2%}")
+            st.write(f"**Action Plan:** {latest.get('auto_resolution', latest.get('recommended_action', 'No action needed'))}")
+            st.caption(str(latest.get('resolution_playbook', 'Observe and continue monitoring.')))
+            if str(latest.get('resolution_alert', '') or '').strip():
+                st.error(str(latest.get('resolution_alert')))
+
+            if ai_provider == "Groq" and HAS_GROQ and api_key_input:
+                if st.button("📘 Generate Groq Runbook", use_container_width=True):
+                    groq_service = GroqService(api_key=api_key_input)
+                    with st.spinner("Generating runbook with Groq..."):
+                        runbook = groq_service.generate_runbook(str(latest.get('predicted_root_cause', 'Unknown Incident')))
+                    st.markdown(runbook)
 
             # Feedback Loop (Only visible if something is wrong)
             if latest.get('anomaly_label', 0) == 1 or latest['cpu_usage'] > CPU_THRESH:

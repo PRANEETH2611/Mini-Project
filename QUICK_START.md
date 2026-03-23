@@ -35,11 +35,22 @@ python test_mongodb.py
 
 You should see: ✅ All tests passed!
 
-### Step 4: Run Dashboard
+### Step 4: Run Backend + Streamlit Dashboard (single command)
 
 ```bash
-streamlit run dashboard/app.py
+python run_all.py
 ```
+
+For live simulated cloud metrics instead of relying on the static dataset, run:
+
+```bash
+python run_all.py --simulate --fresh-stream
+```
+
+This starts:
+- Flask backend API at `http://localhost:5000`
+- Streamlit frontend at `http://localhost:8501`
+- Optional live cloud-metrics simulator posting to `/api/ingest`
 
 ### Step 5: Login
 
@@ -79,6 +90,8 @@ AIOPS project/
 - ✅ Incident Tracking
 - ✅ Charts & Analytics
 - ✅ Filtering Options
+- ✅ AI-based automatic resolution suggestions for anomalies
+- ✅ Groq/Gemini-powered AI command center and runbook generation
 
 ---
 
