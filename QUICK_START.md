@@ -41,16 +41,9 @@ You should see: ✅ All tests passed!
 python run_all.py
 ```
 
-For live simulated cloud metrics instead of relying on the static dataset, run:
-
-```bash
-python run_all.py --simulate --fresh-stream
-```
-
 This starts:
 - Flask backend API at `http://localhost:5000`
 - Streamlit frontend at `http://localhost:8501`
-- Optional live cloud-metrics simulator posting to `/api/ingest`
 
 ### Step 5: Login
 

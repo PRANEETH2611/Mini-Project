@@ -116,24 +116,12 @@ resolution_output = df.apply(
         anomaly_score=float(row.get("anomaly_score", 0)),
         failure_probability=float(row.get("failure_probability", 0)),
         anomaly_label=int(row.get("anomaly_label", 0)),
-        root_cause_confidence=float(row.get("root_cause_confidence", 1.0)),
     ),
     axis=1,
     result_type="expand",
 )
 
 df = pd.concat([df, resolution_output], axis=1)
-
-def derive_incident_state(row):
-    status = str(row.get("resolution_status", "MONITORING"))
-    if status == "AUTO_REMEDIATION_EXECUTED":
-        return "RESOLVED_BY_AI"
-    if status == "MANUAL_INTERVENTION_REQUIRED":
-        return "ESCALATED_TO_SRE"
-    return "MONITORING"
-
-# Set explicit incident state for dashboard alerts
-df["incident_state"] = df.apply(derive_incident_state, axis=1)
 
 # -------------------------------
 # SAVE FINAL OUTPUT

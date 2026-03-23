@@ -1,10 +1,15 @@
 import google.generativeai as genai
 import sys
+import os
+from dotenv import load_dotenv
 
-API_KEY = "AIzaSyC6MI7Z9rG_8kTMgk12-1_FH6TlOLrqp6s"
+load_dotenv()
+API_KEY = os.getenv("GOOGLE_API_KEY")
 
 try:
     with open("models_list.txt", "w") as f:
+        if not API_KEY:
+            raise ValueError("GOOGLE_API_KEY is missing. Set it in .env")
         genai.configure(api_key=API_KEY)
         f.write("--- START MODEL LIST ---\n")
         for m in genai.list_models():
