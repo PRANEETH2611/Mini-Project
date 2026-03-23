@@ -38,7 +38,7 @@ You should see: ✅ All tests passed!
 ### Step 4: Run Backend + Streamlit Dashboard (single command)
 
 ```bash
-streamlit run dashboard/app.py
+python run_all.py
 ```
 
 This starts:
@@ -84,6 +84,7 @@ AIOPS project/
 - ✅ Charts & Analytics
 - ✅ Filtering Options
 - ✅ AI-based automatic resolution suggestions for anomalies
+- ✅ Groq/Gemini-powered AI command center and runbook generation
 
 ---
 
