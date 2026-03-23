@@ -23,6 +23,11 @@ target/
 # Logs
 *.log
 
+# Environment variables
+.env
+.env.*
+!.env.example
+
 #text
 .ppt
 .pptx

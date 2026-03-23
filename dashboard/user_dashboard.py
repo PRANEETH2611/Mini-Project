@@ -6,6 +6,12 @@ import sys
 import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
+from dotenv import load_dotenv
+try:
+    import google.generativeai as genai
+    HAS_GENAI = True
+except ImportError:
+    HAS_GENAI = False
 import time
 from datetime import datetime
 import importlib
@@ -13,6 +19,7 @@ import importlib.util
 
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+load_dotenv()
 
 HAS_GENAI = importlib.util.find_spec("google.generativeai") is not None
 HAS_GROQ = importlib.util.find_spec("groq") is not None
@@ -212,12 +219,13 @@ def main():
                 )
         
         st.markdown("---")
-        st.markdown("### 🔑 AI Configuration")
-        ai_provider = st.selectbox("AI Provider", ["Groq", "Gemini"] if HAS_GROQ else ["Gemini", "Groq"])
-        if ai_provider == "Groq":
-            api_key_input = st.text_input("Groq API Key", value="", type="password", help="Starts with gsk_")
-            if not HAS_GROQ:
-                st.error("⚠️ Groq Library Missing. Run: `pip install groq`")
+        if HAS_GENAI:
+            st.markdown("### 🔑 AI Configuration")
+            api_key_input = st.text_input(
+                "Gemini API Key",
+                value=os.getenv("GOOGLE_API_KEY", ""),
+                type="password"
+            )
         else:
             api_key_input = st.text_input("Gemini API Key", value="", type="password")
             if not HAS_GENAI:
